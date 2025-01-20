@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Token List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .total-row {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        /* Search input styles */
+        .search-bar {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-bar input {
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        img {
+            max-width: 50px;
+            max-height: 50px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .tags {
+            color: #555;
+        }
+
+        /* Responsive styles */
+        @media screen and (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            th, td {
+                text-align: center;
+                display: block;
+                width: 100%;
+            }
+
+            td {
+                margin-bottom: 10px;
+            }
+
+            th {
+                position: sticky;
+                top: 0;
+                background-color: #f4f4f4;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Latest Solana Token List</h1>
+
+    <!-- Search bar -->
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search by Token Name" onkeyup="filterTokens()">
+    </div>
+
+    <!-- Display Total Tokens Above the Table -->
+    <div class="total-row">
+        <span id="total-tokens">Loading Total Tokens...</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th> <!-- Column for numbering -->
+                <th>Logo</th>
+                <th>Name (Symbol)</th>
+                <th>Address</th>
+                <th>Website</th>
+                <th>Facebook</th>
+                <th>Twitter</th>
+                <th>Tags</th>
+            </tr>
+        </thead>
+        <tbody id="token-list">
+            <!-- Tokens will be added here dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        let tokens = []; // Store the fetched token data globally
+
+        // Function to fetch and display the token list
+        fetch('/tokens')
+            .then(response => response.json())
+            .then(data => {
+                tokens = data; // Store fetched tokens
+                const totalTokensElement = document.getElementById('total-tokens');
+                totalTokensElement.textContent = `Total Tokens: ${tokens.length}`;
+                displayTokens(tokens);
+            })
+            .catch(error => {
+                console.error('Error fetching token list:', error);
+            });
+
+        // Function to display the tokens in the table
+        function displayTokens(tokenList) {
+            const tokenListElement = document.getElementById('token-list');
+            tokenListElement.innerHTML = ''; // Clear existing rows
+            tokenList.forEach((token, index) => {
+                const website = token.extensions?.website || 'N/A';
+                const facebook = token.extensions?.facebook || 'N/A';
+                const twitter = token.extensions?.twitter || 'N/A';
+                const tags = Array.isArray(token.tags) ? token.tags.join(', ') : 'No tags';
+                const solscanAddress = `https://solscan.io/token/${token.address}`;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><img src="${token.logoURI}" alt="${token.name} Logo"></td>
+                    <td><strong>${token.name} (${token.symbol})</strong></td>
+                     <td><a href="${solscanAddress}" target="_blank">${token.address}</a></td>
+                    <td><a href="${website}" target="_blank">${website}</a></td>
+                    <td><a href="${facebook}" target="_blank">${facebook}</a></td>
+                    <td><a href="${twitter}" target="_blank">${twitter}</a></td>
+                    <td class="tags">${tags}</td>
+                `;
+                tokenListElement.appendChild(row);
+            });
+        }
+
+        // Function to filter tokens by name based on user input
+        function filterTokens() {
+            const searchInput = document.getElementById('search-input').value.toLowerCase();
+            const filteredTokens = tokens.filter(token =>
+                token.name.toLowerCase().includes(searchInput)
+            );
+            displayTokens(filteredTokens); // Display the filtered tokens
+            document.getElementById('total-tokens').textContent = `Total Tokens: ${filteredTokens.length}`; // Update total count
+        }
+    </script>
+</body>
+</html>
