@@ -18,16 +18,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve the HTML file when accessing the root URL
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Fetch the latest Solana token list
-app.get('/tokens', async (req, res) => {
+let tokenList = [];
+
+// Function to fetch the latest token list
+async function fetchTokenList() {
   try {
     const response = await fetch(TOKEN_LIST_URL);
     const data = await response.json();
-    res.json(data.tokens);
+    tokenList = data.tokens; // Store the token list in memory
+    console.log('Fetched latest token list');
   } catch (error) {
     console.error('Error fetching token list:', error);
-    res.status(500).json({ error: 'Failed to fetch token list' });
   }
+}
+
+// Fetch the latest token list immediately when the server starts
+fetchTokenList();
+
+// Set up an interval to fetch the token list every 15 minutes (900,000 ms)
+setInterval(fetchTokenList, 15 * 60 * 1000); // 15 minutes in milliseconds
+
+// Serve the latest token list at /tokens endpoint
+app.get('/tokens', (req, res) => {
+  res.json(tokenList);
 });
 
 // Start the Express server
