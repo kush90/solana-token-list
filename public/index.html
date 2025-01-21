@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +20,6 @@
             margin-bottom: 10px;
         }
 
-        /* Search input styles */
         .search-bar {
             margin-bottom: 20px;
             display: flex;
@@ -41,11 +41,14 @@
             table-layout: fixed;
         }
 
-        table, th, td {
+        table,
+        th,
+        td {
             border: 1px solid #ddd;
         }
 
-        th, td {
+        th,
+        td {
             padding: 8px;
             text-align: left;
             overflow: hidden;
@@ -75,7 +78,30 @@
             color: #555;
         }
 
-        /* Responsive styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            background-color: #f4f4f4;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .pagination button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
         @media screen and (max-width: 768px) {
             table {
                 display: block;
@@ -83,7 +109,8 @@
                 white-space: nowrap;
             }
 
-            th, td {
+            th,
+            td {
                 text-align: center;
                 display: block;
                 width: 100%;
@@ -101,15 +128,14 @@
         }
     </style>
 </head>
+
 <body>
     <h1>Latest Solana Token List</h1>
 
-    <!-- Search bar -->
     <div class="search-bar">
         <input type="text" id="search-input" placeholder="Search by Token Name" onkeyup="filterTokens()">
     </div>
 
-    <!-- Display Total Tokens Above the Table -->
     <div class="total-row">
         <span id="total-tokens">Loading Total Tokens...</span>
     </div>
@@ -117,7 +143,7 @@
     <table>
         <thead>
             <tr>
-                <th>#</th> <!-- Column for numbering -->
+                <th>#</th>
                 <th>Logo</th>
                 <th>Name (Symbol)</th>
                 <th>Address</th>
@@ -128,31 +154,41 @@
             </tr>
         </thead>
         <tbody id="token-list">
-            <!-- Tokens will be added here dynamically -->
         </tbody>
     </table>
 
-    <script>
-        let tokens = []; // Store the fetched token data globally
+    <div class="pagination">
+        <button id="prev-page" onclick="prevPage()">Previous</button>
+        <span id="current-page">Page 1</span>
+        <button id="next-page" onclick="nextPage()">Next</button>
+    </div>
 
-        // Function to fetch and display the token list
+    <script>
+        let tokens = [];
+        let filteredTokens = [];
+        let currentPage = 1;
+        const tokensPerPage = 10;
+
         fetch('/tokens')
             .then(response => response.json())
             .then(data => {
-                tokens = data; // Store fetched tokens
-                const totalTokensElement = document.getElementById('total-tokens');
-                totalTokensElement.textContent = `Total Tokens: ${tokens.length}`;
-                displayTokens(tokens);
+                tokens = data;
+                filteredTokens = tokens; // Initialize filteredTokens with the full token list
+                document.getElementById('total-tokens').textContent = `Total Tokens: ${tokens.length}`;
+                displayTokens(filteredTokens, currentPage);
             })
-            .catch(error => {
-                console.error('Error fetching token list:', error);
-            });
+            .catch(error => console.error('Error fetching token list:', error));
 
-        // Function to display the tokens in the table
-        function displayTokens(tokenList) {
+        function displayTokens(tokenList, page) {
             const tokenListElement = document.getElementById('token-list');
-            tokenListElement.innerHTML = ''; // Clear existing rows
-            tokenList.forEach((token, index) => {
+            tokenListElement.innerHTML = '';
+
+            const start = (page - 1) * tokensPerPage;
+            const end = start + tokensPerPage;
+            const paginatedTokens = tokenList.slice(start, end);
+
+            paginatedTokens.forEach((token, index) => {
+                const globalIndex = start + index + 1;
                 const website = token.extensions?.website || 'N/A';
                 const facebook = token.extensions?.facebook || 'N/A';
                 const twitter = token.extensions?.twitter || 'N/A';
@@ -161,10 +197,10 @@
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${index + 1}</td>
+                    <td>${globalIndex}</td>
                     <td><img src="${token.logoURI}" alt="${token.name} Logo"></td>
                     <td><strong>${token.name} (${token.symbol})</strong></td>
-                     <td><a href="${solscanAddress}" target="_blank">${token.address}</a></td>
+                    <td><a href="${solscanAddress}" target="_blank">${token.address}</a></td>
                     <td><a href="${website}" target="_blank">${website}</a></td>
                     <td><a href="${facebook}" target="_blank">${facebook}</a></td>
                     <td><a href="${twitter}" target="_blank">${twitter}</a></td>
@@ -172,17 +208,41 @@
                 `;
                 tokenListElement.appendChild(row);
             });
+
+            document.getElementById('current-page').textContent = `Page ${currentPage}`;
         }
 
-        // Function to filter tokens by name based on user input
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayTokens(filteredTokens, currentPage);
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredTokens.length / tokensPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayTokens(filteredTokens, currentPage);
+            }
+        }
+
         function filterTokens() {
             const searchInput = document.getElementById('search-input').value.toLowerCase();
-            const filteredTokens = tokens.filter(token =>
+
+            filteredTokens = tokens.filter(token =>
                 token.name.toLowerCase().includes(searchInput)
             );
-            displayTokens(filteredTokens); // Display the filtered tokens
-            document.getElementById('total-tokens').textContent = `Total Tokens: ${filteredTokens.length}`; // Update total count
+
+            currentPage = 1; // Reset to the first page for filtered results
+            displayTokens(filteredTokens, currentPage);
+
+            const totalTokensText = searchInput
+                ? `Filtered Tokens: ${filteredTokens.length}`
+                : `Total Tokens: ${tokens.length}`;
+            document.getElementById('total-tokens').textContent = totalTokensText;
         }
     </script>
 </body>
+
 </html>
